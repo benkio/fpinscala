@@ -98,7 +98,7 @@ object List { // `List` companion object. Contains functions for creating and wo
   def map[A,B](l: List[A])(f: A => B): List[B] =
     foldLeft(l, List[B]())((b, a) => Cons(f(a),b))
 
-  // Exercises from 11 to 15
+  // Exercises
 
   def sum3(l : List[Int]) = foldLeft(l, 0)(_ + _)
   def product3(l : List[Int]) = foldLeft(l, 1)(_ * _)
@@ -120,5 +120,36 @@ object List { // `List` companion object. Contains functions for creating and wo
   def concat[A](l: List[List[A]]): List[A] =
     foldRight(l, List[A]())((a, b) => List.append(a, b))
 
-  def add1(l: List[Int]): List[Int] = ???
+  def add1(l: List[Int]): List[Int] = List.map(l)(_+1)
+  def toString(l : List[Double]) : List[String] = List.map(l)(_.toString)
+  def filter[A](l : List[A])(f : A => Boolean) =
+    foldRight(l, List[A]())((x, l) => if (f(x)) Cons(x,l) else l)
+  def flatMap[A, B](l : List[A])(f : A => List[B]) =
+    foldLeft(l, List[B]())((l, x) => List.append(l, f(x))) // concat(l map (f))
+  def filter2[A](l : List[A])(f : A => Boolean) : List[A] =
+    flatMap(l)(a => if (f(a)) Cons(a,Nil) else Nil)
+
+  def addIntList(xs : List[Int], ys : List[Int]) : List[Int] = (xs, ys) match {
+    case (Nil,_) | (_, Nil)         => Nil
+    case (Cons(a, as), Cons(b, bs)) => Cons((a + b), addIntList(as, bs))
+  }
+
+  def addList[A](xs : List[A], ys : List[A])(f: (A,A) => A) : List[A] = (xs, ys) match {
+    case (Nil,_) | (_, Nil)         => Nil
+    case (Cons(a, as), Cons(b, bs)) => Cons(f(a, b), addList(as, bs)(f))
+  }
+
+  @annotation.tailrec
+  def startsWith[A](l : List[A], prefix : List[A]) : Boolean = (l, prefix) match {
+    case (_, Nil)                   => true
+    case (Cons(a, as), Cons(b, bs)) => if (a == b) startsWith(as, bs) else false
+    case _                          => false
+  }
+
+  @annotation.tailrec
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = sup match {
+    case Nil                                 => sub == Nil
+    case Cons(_, _) if (startsWith(sup,sub)) => true
+    case Cons(_, xs)                         => hasSubsequence(xs, sub)
+  }
 }
