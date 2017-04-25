@@ -17,11 +17,40 @@ trait Stream[+A] {
     case Empty => None
     case Cons(h, t) => if (f(h())) Some(h()) else t().find(f)
   }
-  def take(n: Int): Stream[A] = ???
 
-  def drop(n: Int): Stream[A] = ???
 
-  def takeWhile(p: A => Boolean): Stream[A] = ???
+  def toList : List[A] = this match {
+    case Cons(h, t) => h() :: t().toList
+    case _ => Nil
+  }
+
+  def toListTailRec : List[A] = {
+    @annotation.tailrec
+    def go[A](s : Stream[A], acc : List[A]) : List[A] = s match {
+      case Empty => acc
+      case Cons(h, t) => go(t(), h() :: acc)
+    }
+
+    go(this, Nil).reverse
+  }
+
+  def take(n: Int): Stream[A] = this match {
+    case Cons(h, t) if (n > 0) => cons(h(), t().take(n-1))
+    case _ => Empty
+//    case _ if (n == 0) => Empty
+//    case _ =>  throw new Exception("stream take: n negative or higher than stream size")
+  }
+
+  @annotation.tailrec
+  final def drop(n: Int): Stream[A] = this match {
+    case Cons(_, t) if (n > 0) => t().drop(n-1)
+    case _ => this
+  }
+
+  def takeWhile(p: A => Boolean): Stream[A] = this match {
+    case Cons(h, t) if (p(h())) => cons(h(), t().takeWhile(p))
+    case _ => Empty
+  }
 
   def forAll(p: A => Boolean): Boolean = ???
 
