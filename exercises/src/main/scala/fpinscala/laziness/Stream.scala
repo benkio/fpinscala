@@ -98,14 +98,16 @@ trait Stream[+A] {
     go(this, p)
   }
 
-  def map[B](f : A => B) : Stream[B] =
-    foldRight[Stream[B]](empty[B])((a, b) => cons(f(a), b))
-
   def mapViaUnfold[B](f : A => B) : Stream[B] =
     Stream.unfold(this)(s => s match {
                           case Cons(h, t) => Some(f(h()), t())
                           case Empty      => None
                         })
+
+  def headOption: Option[A] = ???
+
+  // 5.7 map, filter, append, flatmap using foldRight. Part of the exercise is
+  // writing your own function signatures.
 
   def filter(f : A => Boolean) : Stream[A] =
     foldRight[Stream[A]](empty[A])((a, b) => if (f(a)) cons(a , b) else b)
@@ -116,13 +118,37 @@ trait Stream[+A] {
   def flatMap[B>:A](f : A => Stream[B]) : Stream[B] =
     foldRight[Stream[B]](empty)((a, b) => f(a) append b)
 
-  def headOption: Option[A] = ???
+  def map[B](f : A => B) : Stream[B] =
+    foldRight[Stream[B]](empty[B])((a, b) => cons(f(a), b))
 
-  // 5.7 map, filter, append, flatmap using foldRight. Part of the exercise is
-  // writing your own function signatures.
+  // Not elegant but works
+  def startsWith[B](s: Stream[B]): Boolean = (this, s) match {
+    case (Cons(h, t), Cons(h1, t1)) if (h() == h1())    => t1() match {
+      case Empty => true
+      case _ => t().startsWith(t1())
+    }
+    case (Empty, Empty)                                 => true
+    case _                                              => false
+  }
 
-  def startsWith[B](s: Stream[B]): Boolean = ???
+  def tails : Stream[Stream[A]] =
+    unfold((this, true))(s => s match {
+                           case (Cons(h, t), b)  => Some((Cons(h, t), (t(), b)))
+                           case (Empty, true)    => Some((Empty, (Empty, false)))
+                           case _                => None
+                         } )
+
+  def hasSubsequence[A](s : Stream[A]) : Boolean =
+    this.tails exists (_.startsWith(s))
+
+
+  def scanRight[B](z : B)(f : (A, => B) => B) : Stream[B] =
+    this.tails map (s => s match {
+                      case Empty => z
+                      case _ => s.foldRight(z)(f)
+                    })
 }
+
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A]
 
@@ -149,7 +175,7 @@ object Stream {
   }
 
   def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = f(z) match {
-    case Some(t) => Stream.cons(t._1, unfold(t._2)(f))
+    case Some(t)    => Stream.cons(t._1, unfold(t._2)(f))
     case None       => Empty
   }
 
