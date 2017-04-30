@@ -30,17 +30,65 @@ object RNG {
       (f(a), rng2)
     }
 
-  def nonNegativeInt(rng: RNG): (Int, RNG) = ???
+  def nonNegativeInt(rng: RNG): (Int, RNG) = rng.nextInt match {
+      case (x ,r) if (x >= 0) => (x, r)
+      case (Int.MinValue, r)  => (Int.MaxValue - 1, r)
+      case (x, r)             => (x.abs, r)
+  }
 
-  def double(rng: RNG): (Double, RNG) = ???
 
-  def intDouble(rng: RNG): ((Int,Double), RNG) = ???
+  def double(rng: RNG): (Double, RNG) = {
+    val (x, r) = RNG.nonNegativeInt(rng)
+    ((x / Int.MaxValue), r)
+  }
 
-  def doubleInt(rng: RNG): ((Double,Int), RNG) = ???
+  val double : Rand[Double] =
+    map(int)(_.toDouble)
 
-  def double3(rng: RNG): ((Double,Double,Double), RNG) = ???
+  // Did not reuse double becouse of the nonNegativeInt.
+  // It wasn't specified in the book to filter out the negative numbers.
 
-  def ints(count: Int)(rng: RNG): (List[Int], RNG) = ???
+  def intDouble(rng: RNG): ((Int,Double), RNG) = {
+    val (x, r)  = rng.nextInt
+    val (y, r1) = r.nextInt
+    ((x, y.toDouble), r1)
+  }
+
+  def doubleInt(rng: RNG): ((Double,Int), RNG) = {
+    val ((x, y), r) = intDouble(rng)
+    ((y, x), r)
+  }
+
+  def double3(rng: RNG): ((Double,Double,Double), RNG) = {
+    val (x, r)  = rng.nextInt
+    val (y, r1) = rng.nextInt
+    val (z, r2) = rng.nextInt
+    ((x.toDouble, y.toDouble, z.toDouble), r2)
+  }
+
+
+  def ints(count: Int)(rng: RNG): (List[Int], RNG) = {
+    @annotation.tailrec
+    def go(count: Int, acc : List[Int])(rng : RNG) : (List[Int], RNG) =
+      if (count == 0) (acc, rng)
+      else {
+        val (x, r) = rng.nextInt
+        go(count-1, x :: acc)(r)
+      }
+
+    go(count, List[Int]())(rng)
+  }
+
+  //  def map[A,B](s: Rand[A])(f: A => B): Rand[B] =
+  def positiveMax(n : Int) : Rand[Int] =
+    map(r => {
+          val (x, r1) = r.nextInt
+          if (x < n) (x, r1)
+          else positiveMax(n)(r1)
+        })(x => x)
+
+  def positiveMax2(n : Int) : Rand[Int] =
+    map(nonNegativeInt)(_ % n)
 
   def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = ???
 
