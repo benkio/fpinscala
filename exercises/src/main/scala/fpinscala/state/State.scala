@@ -90,20 +90,64 @@ object RNG {
   def positiveMax2(n : Int) : Rand[Int] =
     map(nonNegativeInt)(_ % n)
 
-  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = ???
+  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = {
+    rng => {
+      val (x, r)  = ra(rng)
+      val (y, r1) = rb(r)
+      (f(x, y), r1)
+    }
+  }
 
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = ???
+  def intDoubleWithMap2(rng: RNG) : ((Int, Double), RNG) =
+    map2[Int, Double, (Int, Double)](int, double)((_, _))(rng)
 
-  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = ???
+  def doubleIntWithMap2(rng: RNG): ((Double,Int), RNG) =
+    map2[Double, Int, (Double, Int)](double, int)((_, _))(rng)
+
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] =
+    fs.foldRight[Rand[List[A]]](unit(List()) : Rand[List[A]])((ra, rla) => map2(ra, rla)((a, la) => a :: la))
+
+  def intsWithSequence(count: Int)(rng: RNG): (List[Int], RNG) =
+    sequence(List.fill(count)(int))(rng)
+
+  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] =
+    rng => {
+      val (a, r)  = f(rng)
+      g(a)(r)
+    }
+
+  val nonNegativeIntWithFlatMap : Rand[Int] =
+    flatMap(int)(x => if (x > 0) unit(x) else nonNegativeIntWithFlatMap)
+
+  def mapWithFlatMap[A,B](s: Rand[A])(f: A => B): Rand[B] =
+    flatMap(s)(a => unit(f(a)))
+
+  def map2WithFlatMap[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] =
+    flatMap(ra)(a => map(rb)( b => f(a, b)))
+
 }
 
 case class State[S,+A](run: S => (A, S)) {
+
   def map[B](f: A => B): State[S, B] =
-    ???
+    State(s => {
+      val (a, s1) = this.run(s)
+      (f(a), s1)
+    })
+
   def map2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] =
-    ???
+    State(s => {
+      val (a, s1) = this.run(s)
+      val (b, s2) = sb.run(s1)
+      (f(a, b), s2)
+    })
+
   def flatMap[B](f: A => State[S, B]): State[S, B] =
-    ???
+    State(s => {
+      val (a, s1) = this.run(s)
+      f(a).run(s1)
+          })
+
 }
 
 sealed trait Input
@@ -113,6 +157,25 @@ case object Turn extends Input
 case class Machine(locked: Boolean, candies: Int, coins: Int)
 
 object State {
+
+  def unit[B, S](value : B) : State[S, B] = State((s : S) => (value, s))
+
+  def _get[S] : State[S, S] = State(s => (s, s))
+  def _set[S](state: S) : State[S, Unit] = State( _ => ((), state))
+
+  def sequence[A, S](fs: List[State[S, A]]): State[S, List[A]] =
+    fs.foldRight[State[S, List[A]]](unit(List[A]()))((sa ,sla) => sa.map2(sla)( _ :: _))
+
   type Rand[A] = State[RNG, A]
+
+  // Based on inputs it must return the machine state, the number of coins and candies in the machine.
+  /*
+   RULES:
+
+   + If the machine is out of candies, it ignores all the inputs
+   + Insert a coin in the locked machine will unlock it if there're some candies left adding 1 to the machine credit
+   + Turn the knob in the unlocked machine will lock it and dispence 1 candy.
+   + Other inputs are ignored
+   */
   def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
 }
