@@ -177,5 +177,17 @@ object State {
    + Turn the knob in the unlocked machine will lock it and dispence 1 candy.
    + Other inputs are ignored
    */
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+
+  def simulateMachine(input : Input) : State[Machine, (Int, Int)] = State( machine =>
+    (input, machine) match {
+      case (_, Machine(_, 0, coins)) => ((coins, 0), machine)
+      case (Coin, Machine(true, candies, coins)) => ((coins + 1, candies), Machine(false, candies, coins + 1))
+      case (Turn, Machine(false, candies, coins)) => ((coins, candies - 1), Machine(true, candies - 1, coins))
+      case _ => ((machine.coins, machine.candies), machine)
+    })
+
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = inputs match {
+    case Nil => State(m => ((m.coins, m.candies), m))
+    case x :: xs => simulateMachine(x) flatMap (_ => simulateMachine(xs))
+  }
 }
