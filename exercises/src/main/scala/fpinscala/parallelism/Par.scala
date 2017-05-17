@@ -51,11 +51,22 @@ object Par {
   def map2[A,B,C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] =
     map(product(a, b))(t => f(t._1, t._2))
 
+  /* My attempt of parMap
   def parMap[A, B](l : List[A])(f : A => B) : Par[List[B]] = l match {
     case Nil     => unit(Nil)
     case x :: xs => map2(unit(f(x)), parMap(xs)(f))(_ :: _)
   }
+   */
+  def sequence[A](l : List[Par[A]]) : Par[List[A]] =
+    l.foldRight(unit(List()) : Par[List[A]])((a, b) => map2(a, b)(_ :: _))
 
+  def parMap[A, B](l : List[A])(f : A => B) : Par[List[B]] = {
+    val fbs : List[Par[B]] = l map(asyncF(f))
+    sequence(fbs)
+  }
+
+  def parFilter[A](l : List[A])(f : A => Boolean) : Par[List[A]] =
+    map(parMap(l)(a => if (f(a)) List(a) else List()))(_.flatten)
 
   def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = 
     p(e).get == p2(e).get
@@ -86,5 +97,4 @@ object Examples {
       val (l,r) = ints.splitAt(ints.length/2) // Divide the sequence in half using the `splitAt` function.
       sum(l) + sum(r) // Recursively sum both halves and add the results together.
     }
-
 }
