@@ -4,6 +4,7 @@ import fpinscala.laziness.Stream
 import fpinscala.state._
 import fpinscala.parallelism._
 import fpinscala.parallelism.Par.Par
+import scala.util.Try
 import Gen._
 import Prop._
 import java.util.concurrent.{Executors,ExecutorService}
@@ -14,6 +15,12 @@ shell, which you can fill in and modify while working through the chapter.
 */
 
 trait Prop {
+  def sumListIntProp(gen : Gen[List[Int]]) : Prop =
+    forAll(gen){ l => l.sum == l.reverse.sum && l.sum == (0 :: l).sum }
+
+  def maxListIntProp(gen: Gen[List[Int]]) : Prop =
+    forAll(gen) { l => l.sortWith(_ > _).headOption == Try(l.max).toOption   }
+
 }
 
 object Prop {
