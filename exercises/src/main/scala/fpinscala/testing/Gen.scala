@@ -15,15 +15,27 @@ shell, which you can fill in and modify while working through the chapter.
 */
 
 trait Prop {
-  def sumListIntProp(gen : Gen[List[Int]]) : Prop =
+/*  def sumListIntProp(gen : Gen[List[Int]]) : Prop =
     forAll(gen){ l => l.sum == l.reverse.sum && l.sum == (0 :: l).sum }
 
   def maxListIntProp(gen: Gen[List[Int]]) : Prop =
     forAll(gen) { l => l.sortWith(_ > _).headOption == Try(l.max).toOption   }
-
+ */
+  def check : Either[FailedCase, SuccessCount]
+  def &&(p : Prop) : Prop = new Prop {
+    override def check = (this.check, p.check) match {
+      case (Left(s), Right(_)) => Left(s)
+      case (Right(_), Left(s)) => Left(s)
+      case (Left(s), Left(r))  => Left(s ++ "\n" ++r)
+      case (Right(i), Right(j))=> Right(i + j)
+    }
+  }
 }
 
 object Prop {
+  type FailedCase   = String
+  type SuccessCount = Int
+
   def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
 }
 
