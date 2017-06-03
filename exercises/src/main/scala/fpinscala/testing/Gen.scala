@@ -39,14 +39,31 @@ object Prop {
   def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
 }
 
-object Gen {
-  def unit[A](a: => A): Gen[A] = ???
-}
 
-trait Gen[A] {
+case class Gen[+A](sample: State[RNG, A], exaustive : Stream[A]) {
   def map[A,B](f: A => B): Gen[B] = ???
   def flatMap[A,B](f: A => Gen[B]): Gen[B] = ???
 }
+
+object Gen {
+
+  def choose(start: Int, stopExclusive : Int) : Gen[Int] =
+    Gen(State.unit(RNG.int).flatMap(x =>
+          if (start until stopExclusive contains x) State(x)
+          else choose(start, stopExclusive).sample
+        ),
+        Stream.unfold(start)(x => if (x < stopExclusive) Some((x, x+1)) else None)
+    )
+
+  def unit[A](a: => A): Gen[A] = Gen(State.unit(a) , Stream(a))
+
+  def boolean : Gen[Boolean] = Gen(State(RNG.map(RNG.int)(x => x % 2 == 0)), Stream(true, false))
+
+  def listOfN[A](n : Int, g : Gen[A]) : Gen[List[A]] =
+    g.flatMap((a : A) => if (n <= 0) Gen.unit(List()) else listOfN(n-1, g).map((l : List[A]) => a :: l))
+}
+
+
 
 trait SGen[+A] {
 
