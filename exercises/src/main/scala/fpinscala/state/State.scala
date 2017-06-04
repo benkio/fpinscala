@@ -146,7 +146,8 @@ case class State[S,+A](run: S => (A, S)) {
     State(s => {
       val (a, s1) = this.run(s)
       f(a).run(s1)
-          })
+          }
+    )
 
 }
 

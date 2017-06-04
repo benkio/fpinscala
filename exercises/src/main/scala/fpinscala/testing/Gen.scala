@@ -40,7 +40,7 @@ object Prop {
 }
 
 
-case class Gen[+A](sample: State[RNG, A], exaustive : Stream[A]) {
+case class Gen[+A](sample: State[RNG, A], exaustive : Stream[Option[A]]) {
   def map[A,B](f: A => B): Gen[B] = ???
   def flatMap[A,B](f: A => Gen[B]): Gen[B] = ???
 }
@@ -48,19 +48,24 @@ case class Gen[+A](sample: State[RNG, A], exaustive : Stream[A]) {
 object Gen {
 
   def choose(start: Int, stopExclusive : Int) : Gen[Int] =
-    Gen(State.unit(RNG.int).flatMap(x =>
-          if (start until stopExclusive contains x) State(x)
-          else choose(start, stopExclusive).sample
-        ),
-        Stream.unfold(start)(x => if (x < stopExclusive) Some((x, x+1)) else None)
+    Gen(State(RNG.nonNegativeInt).map(x => start + x % (stopExclusive - start)),
+        Stream.unfold(start)(x => if (x < stopExclusive) Some((Some(x), x+1)) else None)
     )
 
-  def unit[A](a: => A): Gen[A] = Gen(State.unit(a) , Stream(a))
+  def choose(i : Double, j : Double) : Gen[Double] =
+    Gen(State(RNG.double).map(d => i + d*(j-i)),
+        Stream.empty
+    )
 
-  def boolean : Gen[Boolean] = Gen(State(RNG.map(RNG.int)(x => x % 2 == 0)), Stream(true, false))
+  def unit[A](a: => A): Gen[A] = Gen(State.unit(a) , Stream(Some(a)))
+
+  def boolean : Gen[Boolean] = Gen(State(RNG.map(RNG.int)(x => x % 2 == 0)), Stream(Some(true), Some(false)))
+
+  def uniform : Gen[Double] = choose(0.0, 1.0)
 
   def listOfN[A](n : Int, g : Gen[A]) : Gen[List[A]] =
     g.flatMap((a : A) => if (n <= 0) Gen.unit(List()) else listOfN(n-1, g).map((l : List[A]) => a :: l))
+
 }
 
 
