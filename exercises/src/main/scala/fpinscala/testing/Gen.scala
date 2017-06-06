@@ -54,10 +54,10 @@ case class Gen[+A](sample: State[RNG, A], exaustive : Stream[Option[A]]) {
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(
     sample.flatMap(a => f(a).sample),
     Stream.empty
-    /* F!%~# TYPE ERASURE
-     exaustive.flatMap((oa : Option[A]) =>
-      oa.map(a => f(a).exaustive).getOrElse(Stream(None)) : Stream[Option[B]]
-    )*/
+    /*exaustive.flatMap {
+      case None => Stream(None)
+      case Some(a) => f(a).exaustive
+     }*/
   )
 
 
