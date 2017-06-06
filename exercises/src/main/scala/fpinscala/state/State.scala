@@ -43,7 +43,7 @@ object RNG {
   }
 
   val double : Rand[Double] =
-    map(int)(_.toDouble)
+    map(nonNegativeInt)(_ / Int.MaxValue.toDouble + 1)
 
   // Did not reuse double becouse of the nonNegativeInt.
   // It wasn't specified in the book to filter out the negative numbers.
