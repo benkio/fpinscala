@@ -39,10 +39,10 @@ object RNG {
 
   def double(rng: RNG): (Double, RNG) = {
     val (x, r) = RNG.nonNegativeInt(rng)
-    ((x / Int.MaxValue), r)
+    ((x / Int.MaxValue + 1), r)
   }
 
-  val double : Rand[Double] =
+  val _double : Rand[Double] =
     map(nonNegativeInt)(_ / Int.MaxValue.toDouble + 1)
 
   // Did not reuse double becouse of the nonNegativeInt.

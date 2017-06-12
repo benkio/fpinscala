@@ -1,6 +1,6 @@
 package fpinscala.testing
 
-import fpinscala.laziness.Stream
+import fpinscala.laziness.{Stream, Cons, Empty}
 import fpinscala.state._
 import fpinscala.parallelism._
 import fpinscala.parallelism.Par.Par
@@ -14,29 +14,60 @@ The library developed in this chapter goes through several iterations. This file
 shell, which you can fill in and modify while working through the chapter.
 */
 
-trait Prop {
-/*  def sumListIntProp(gen : Gen[List[Int]]) : Prop =
-    forAll(gen){ l => l.sum == l.reverse.sum && l.sum == (0 :: l).sum }
+trait Status
+case object Proven extends Status
+case object Unfalsified extends Status
 
-  def maxListIntProp(gen: Gen[List[Int]]) : Prop =
-    forAll(gen) { l => l.sortWith(_ > _).headOption == Try(l.max).toOption   }
- */
-  def check : Either[FailedCase, SuccessCount]
-  def &&(p : Prop) : Prop = new Prop {
-    override def check = (this.check, p.check) match {
-      case (Left(s), Right(_)) => Left(s)
-      case (Right(_), Left(s)) => Left(s)
-      case (Left(s), Left(r))  => Left(s ++ "\n" ++r)
-      case (Right(i), Right(j))=> Right(i + j)
-    }
+case class Prop(run : (TestCases, RNG) => Result) {
+  def &&(p : Prop) : Prop = Prop{ (t, r) =>
+    if (run(t, r).isLeft) run(t, r) else p.run(t, r)
   }
+
+  def ||(p : Prop) : Prop = Prop{ (t, r) =>
+    if (run(t, r).isRight) run(t, r) else p.run(t, r)
+  }
+
+  def tag(msg : String) : Prop =
+    Prop{ (t, r) => run(t,r) match {
+           case Left(s) => Left(msg + s)
+           case x => x
+         }
+    }
 }
 
 object Prop {
+  type TestCases    = Int
   type FailedCase   = String
   type SuccessCount = Int
+  type Result       = Either[FailedCase, (Status, SuccessCount)]
 
-  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = ???
+  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = Prop {
+    (n, rng) => {
+      def go(i : Int, j : Int, s : Stream[Option[A]], onEnd : Int => Result) : Result =
+        if (i == j) Right((Unfalsified, i))
+        else s match {
+          case Cons(h, t) => h() match {
+            case Some(h) =>  try { if (f(h)) go(i+1, j, s, onEnd) else Left(h.toString) }
+                             catch { case e : Exception => Left(buildMsg(h, e)) }
+            case None => Right((Unfalsified, i))
+          }
+          case Empty => onEnd(i)
+        }
+
+      go(0, n/3, gen.exaustive, i => Right((Proven, i))) match {
+        case Right((Unfalsified, _)) => {
+          val rands = randomStream(gen)(rng).map(Some(_))
+          go(n/3, n, rands, i => Right((Unfalsified, i)))
+        }
+        case s => s
+      }
+    }
+  }
+
+  def buildMsg[A](s : A, e : Exception) : String =
+    "test case " + s + "\n" +
+    "generated an exception" + e.getMessage + "\n" +
+    "stack trace:\n" + e.getStackTrace.mkString("\n")
 }
 
 
@@ -95,6 +126,17 @@ object Gen {
         case _ => t
       })
 
+  def union[A](g1 : Gen[A], g2 : Gen[A]) : Gen[A] =
+    boolean.flatMap(b => if (b) g1 else g2)
+
+  def weighted[A](g1 : (Gen[A], Double), g2 : (Gen[A], Double)) : Gen[A] = {
+    val g1Threshold = g1._2.abs / (g1._2.abs + g2._2.abs)
+
+    uniform.flatMap(d => if (d < g1Threshold ) g1._1 else g2._1)
+  }
+
+  def randomStream[A](gen : Gen[A])(rng : RNG) : Stream[A] =
+    Stream.unfold(rng)(rng => Some(gen.sample.run(rng)))
 }
 
 
