@@ -95,6 +95,17 @@ object Prop {
     "test case " + s + "\n" +
     "failed to pass the prop"
 
+  def run(p : Prop,
+          maxSize : Int = 100,
+          testCases : Int = 100,
+          rng : RNG = RNG.Simple(System.currentTimeMillis)) : Unit = {
+    p.run(maxSize, testCases, rng) match {
+      case Left(msg)               => println("! test failed: \n" + msg)
+      case Right((Unfalsified, i)) => println("+ Property Unfalsified, ran "+ i + " tests" )
+      case Right((Proven, i))      => println("+ Property Proven, ran "+ i + " tests")
+      case Right((Exhausted, i))   => println("+ Property Unfalsified up to max size, ran "+ i + " tests")
+    }
+  }
 }
 
 
@@ -119,6 +130,11 @@ case class Gen[+A](sample: State[RNG, A], exhaustive : Stream[Option[A]]) {
   )
 
   def unsized : SGen[A] = Unsized(this)
+
+  /* A method alias for the function we wrote earlier. */
+  def listOfN(size: Int): Gen[List[A]] =
+    Gen.listOfN(size, this)
+
 }
 
 object Gen {
@@ -164,6 +180,13 @@ object Gen {
 
   def randomStream[A](gen : Gen[A])(rng : RNG) : Stream[A] =
     Stream.unfold(rng)(rng => Some(gen.sample.run(rng)))
+
+  def listOf[A](g: Gen[A]): Sized[List[A]] =
+    Sized(n => g.listOfN(n))
+
+  def listOf1[A](g : Gen[A]) : Sized[List[A]] =
+    Sized(n => if (n == 0) g.listOfN(n+1) else g.listOfN(n.abs))
+
 }
 
 trait SGen[+A]
