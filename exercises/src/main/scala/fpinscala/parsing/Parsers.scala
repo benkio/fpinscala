@@ -12,6 +12,10 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
 
   def listOfN[A](n : Int, p : Parser[A]) : Parser[List[A]]
 
+  def many[A](p : Parser[A]) : Parser[List[A]]
+
+  def map[A, B](a : Parser[A])(f : A => B) : Parser[B]
+
   implicit def string(s : String) : Parser[String]
   implicit def operators[A](p : Parser[A]) = ParserOps(p)
   implicit def asStringParser[A](implicit f : A => Parser[String]) = ParserOps(f(a))
@@ -19,6 +23,8 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
   case class ParserOps[A](p: Parser[A]) {
     def |[B>:A](p2 : Parser[B]) : Parser[B] = self.orA(p, p2)
     def or[B>:A](p2 : Parser[B]) : Parser[B] = self.orA(p, p2)
+    def many[A] : Parser[List[A]] = self.many(p)
+    def map[A, B](f : A => B) : Parser[B] = self.map(p)(f)
   }
 
   object Laws {
