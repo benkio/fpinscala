@@ -5,7 +5,12 @@ import fpinscala.testing._
 
 trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trait
 
-  def char(c : Char) : Parser[Char]
+  implicit def string(s : String) : Parser[String]
+  implicit def operators[A](p : Parser[A]) = ParserOps(p)
+  implicit def asStringParser[A](a : A)(implicit f : A => Parser[String]) = ParserOps(f(a))
+
+  def char(c : Char) : Parser[Char] =
+    string(c.toString).map(_.charAt(0))
 
   def or[A](s1 : Parser[A], s2 : Parser[A]) : Parser[A]
 
@@ -17,9 +22,8 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
 
   def map[A, B](a : Parser[A])(f : A => B) : Parser[B]
 
-  implicit def string(s : String) : Parser[String]
-  implicit def operators[A](p : Parser[A]) = ParserOps(p)
-  implicit def asStringParser[A](a : A)(implicit f : A => Parser[String]) = ParserOps(f(a))
+  def succeed[A](a : A) : Parser[A] =
+    string("").map(_ => a)
 
   case class ParserOps[A](p: Parser[A]) {
     def |[B>:A](p2 : Parser[B]) : Parser[B] = self.or(p, p2)
