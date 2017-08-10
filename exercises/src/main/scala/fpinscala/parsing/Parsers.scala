@@ -45,6 +45,11 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
 
   def flatMap[A, B](p : Parser[A])(f : A => Parser[B]) : Parser[B]
 
+  def label[A](msg : String)(p : Parser[A]) : Parser[A]
+
+  def errorMessage(e : ParserError) : String
+  def errorLocation(e : ParserError) : Location
+
   case class ParserOps[A](p: Parser[A]) {
     def |[B>:A](p2 : Parser[B]) : Parser[B] = self.or(p, p2)
     def or[B>:A](p2 : Parser[B]) : Parser[B] = self.or(p, p2)
@@ -55,6 +60,7 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
     def map[B](f : A => B) : Parser[B] = self.map(p)(f)
     def slice[A] : Parser[String] = self.slice(p)
     def flatMap[B](f : A => Parser[B]) : Parser[B] = self.flatMap(p)(f)
+    def label(msg: String): Parser[A] = self.label(msg)(p)
   }
 
   object Laws {
@@ -63,6 +69,7 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
 
     def mapLaw[A](p : Parser[A])(in : Gen[String]) : Prop =
       equal(p, p.map[A](a => a))(in)
+
   }
 }
 

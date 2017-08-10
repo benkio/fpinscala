@@ -135,6 +135,8 @@ case class Gen[+A](sample: State[RNG, A], exhaustive : Stream[Option[A]]) {
   def listOfN(size: Int): Gen[List[A]] =
     Gen.listOfN(size, this)
 
+  def **[B](g: Gen[B]): Gen[(A,B)] =
+    (this map2 g)((_,_))
 }
 
 object Gen {
