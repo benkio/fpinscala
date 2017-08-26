@@ -6,17 +6,32 @@ import scala.util.matching.Regex
 
 trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trait
 
+  /*
+   * Base algebra Combinators
+   */
+
   implicit def string(s : String) : Parser[String]
   implicit def operators[A](p : Parser[A]) = ParserOps(p)
   implicit def asStringParser[A](a : A)(implicit f : A => Parser[String]) = ParserOps(f(a))
   implicit def regex(r : Regex) : Parser[String]
 
+  def or[A](s1 : Parser[A], s2 : => Parser[A]) : Parser[A]
+  def run[A](p : Parser[A])(input : String) : Either[ParserError, A]
+  def label[A](msg : String)(p : Parser[A]) : Parser[A]
+  def scope[A](msg : String)(p : Parser[A]) : Parser[A]
+  def slice[A](p : Parser[A]) : Parser[String]
+  def errorMessage(e : ParserError) : String
+  def errorLocation(e : ParserError) : Location
+  def errorStack(e : ParserError) : List[(Location, String)]
+  def attempt[A](p : Parser[A]) : Parser[A]
+  def flatMap[A, B](p : Parser[A])(f : A => Parser[B]) : Parser[B]
+
+  /*
+   * Derived combinators
+   */
+
   def char(c : Char) : Parser[Char] =
     string(c.toString).map(_.charAt(0))
-
-  def or[A](s1 : Parser[A], s2 : => Parser[A]) : Parser[A]
-
-  def run[A](p : Parser[A])(input : String) : Either[ParserError, A]
 
   def listOfN[A](n : Int, p : Parser[A]) : Parser[List[A]] =
     if (n <= 0) succeed(List()) else map2(p, listOfN(n-1, p))(_ :: _)
@@ -34,26 +49,12 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
   def succeed[A](a : A) : Parser[A] =
     string("").map(_ => a)
 
-  def slice[A](p : Parser[A]) : Parser[String]
-
   def product[A, B](p1 : Parser[A], p2 : => Parser[B]) : Parser[(A, B)] =
     flatMap(p1)(a => flatMap(p2)(b => succeed((a, b))))
 
   def map2[A, B, C](p1 : Parser[A], p2 : => Parser[B])(f : (A, B) => C) : Parser[C] =
     //map(product(p1, p2))(f.tupled)
     flatMap(p1)(a => flatMap(p2)(b => succeed(f(a, b))))
-
-  def flatMap[A, B](p : Parser[A])(f : A => Parser[B]) : Parser[B]
-
-  def label[A](msg : String)(p : Parser[A]) : Parser[A]
-
-  def scope[A](msg : String)(p : Parser[A]) : Parser[A]
-
-  def errorMessage(e : ParserError) : String
-  def errorLocation(e : ParserError) : Location
-  def errorStack(e : ParserError) : List[(Location, String)]
-
-  def attempt[A](p : Parser[A]) : Parser[A]
 
   case class ParserOps[A](p: Parser[A]) {
     def |[B>:A](p2 : Parser[B]) : Parser[B] = self.or(p, p2)
