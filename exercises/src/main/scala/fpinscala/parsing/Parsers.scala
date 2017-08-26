@@ -67,7 +67,7 @@ trait Parsers[Parser[+_]] { self => // so inner classes may call methods of trai
     def flatMap[B](f : A => Parser[B]) : Parser[B] = self.flatMap(p)(f)
     def label(msg: String): Parser[A] = self.label(msg)(p)
     def scope(msg: String): Parser[A] = self.scope(msg)(p)
-    def attempt = self.attempt(p)
+    def attempt[A] = self.attempt(p)
   }
 
   object Laws {
