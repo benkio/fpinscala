@@ -62,7 +62,10 @@ object Monoid {
   import Prop._
   def monoidLaws[A](m: Monoid[A], gen: Gen[A]): Prop = ???
 
-  def trimMonoid(s: String): Monoid[String] = ???
+  def trimMonoid(s: String): Monoid[String] = new Monoid[String] {
+    def op(s1 : String, s2 : String) : String = List(s, s1, s2).foldLeft(zero)((x, y) => x.trim + " " + y.trim).trim
+    val zero : String = ""
+  }
 
   def concatenate[A](as: List[A], m: Monoid[A]): A =
     ???
