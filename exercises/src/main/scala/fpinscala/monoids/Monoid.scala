@@ -68,10 +68,10 @@ object Monoid {
   }
 
   def concatenate[A](as: List[A], m: Monoid[A]): A =
-    ???
+    as.foldLeft(m.zero)(m.op)
 
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
-    ???
+    as.map(f).foldLeft(m.zero)(m.op)
 
   def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B =
     ???
@@ -95,7 +95,7 @@ object Monoid {
   def parFoldMap[A,B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = 
     ???
 
-  val wcMonoid: Monoid[WC] = ???
+//  val wcMonoid: Monoid[WC] = ???
 
   def count(s: String): Int = ???
 
