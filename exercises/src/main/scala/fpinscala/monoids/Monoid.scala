@@ -84,8 +84,14 @@ object Monoid {
   def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B =
     foldMap(as, dual(endoMonoid[B]))(a => b => f(b, a))(z)
 
-  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B =
-    ???
+  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B = {
+    if (as.length == 0) m.zero
+    else if (as.length == 1) f(as(0))
+      else {
+      val (p1, p2) = as.splitAt((as.length/2))
+      m.op(foldMapV(p1, m)(f), foldMapV(p2, m)(f))
+    }
+  }
 
   def ordered(ints: IndexedSeq[Int]): Boolean =
     ???
@@ -100,9 +106,35 @@ object Monoid {
   def parFoldMap[A,B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = 
     ???
 
-//  val wcMonoid: Monoid[WC] = ???
+  val wcMonoid: Monoid[WC] = new Monoid[WC] {
+    val zero : WC = Stub("")
+    def op(m1 : WC, m2 : WC): WC = (m1, m2) match {
+      case (Stub(s1), Stub(s2))                     => Stub(s1 + s2)
+      case (Stub(s1), Part(ls, c, rs))              => Part((s1 + ls), c, rs)
+      case (Part(ls, c, rs), Stub(s1))              => Part(ls, c, (rs + s1))
+      case (Part(ls1, c1, rs1), Part(ls2, c2, rs2)) => Part(ls1, (c1 + c2 + (if ((rs1 + ls2).isEmpty) 0 else 1)), rs2)
+    }
+  }
 
-  def count(s: String): Int = ???
+  def count(s: String): Int = {
+    def toMonoid(s : String) : WC = {
+      val sSplitted = s.split(" ")
+      if (sSplitted.size > 0) Part(sSplitted.head, sSplitted.size - 2, sSplitted.last)
+      else wcMonoid.zero
+    }
+
+    def toInt(w : WC) : Int = w match {
+      case Stub(s) => if (s.isEmpty) 0 else 1
+      case Part(_, c, _) => c
+    }
+
+    s.grouped(5)
+      .map(toMonoid)
+      .sliding(2, 2)
+      .map(l => (l.head, l.last))
+      .map { case (m1, m2) => toInt(wcMonoid.op(m1, m2)) }
+      .fold(0)(_ + _)
+  }
 
   def productMonoid[A,B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] =
     ???
