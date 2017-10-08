@@ -93,8 +93,27 @@ object Monoid {
     }
   }
 
-  def ordered(ints: IndexedSeq[Int]): Boolean =
-    ???
+  def ordered(ints: IndexedSeq[Int]): Boolean = {
+
+    val intOrderedMonoid : Monoid[Option[(Int, Int, Boolean)]] = new Monoid[Option[(Int, Int, Boolean)]] {
+      val zero = None
+      def op(p : Option[(Int, Int,Boolean)], n : Option[(Int, Int, Boolean)]) : Option[(Int, Int, Boolean)] = (p, n) match {
+        case (Some((x1, y1, z1)), Some((x2, y2, z2))) => {
+          if (x1 <= x2 && y1 <= x2 && z1 && z2) // Ordered
+            Some((x1, y2, true))
+          else
+            Some((x1, y2, false))
+        }
+        case (None, x) => x
+        case (x, None) => x
+      }
+    }
+
+    foldMapV(ints, intOrderedMonoid)(x => Some((x, x, true))) match {
+      case None => true
+      case Some((_, _, b : Boolean)) => b
+    }
+  }
 
   sealed trait WC
   case class Stub(chars: String) extends WC
