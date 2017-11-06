@@ -155,8 +155,21 @@ object Monoid {
       .fold(0)(_ + _)
   }
 
-  def productMonoid[A,B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] =
-    ???
+  def productMonoid[A, B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] =
+    new Monoid[(A, B)] {
+      val zero : (A, B) = (A.zero, B.zero)
+      def op(a: (A, B), b: (A, B)) : (A, B)  =
+        (A.op(a._1, b._1), B.op(a._2, b._2))
+    }
+
+  /* Different implementations and  */
+  def coproductMonoid[A, B](A : Monoid[A],
+                            B : Monoid[B]) : Monoid[Either[A, B]] =
+    new Monoid[Either[A, B]] {
+      val zero = ???
+      def op(a : Either[A, B], b : Either[A, B]) : Either[A, B] =
+        ???
+    }
 
   def functionMonoid[A,B](B: Monoid[B]): Monoid[A => B] =
     ???
