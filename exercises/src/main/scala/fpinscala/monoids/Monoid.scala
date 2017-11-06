@@ -179,7 +179,13 @@ object Monoid {
     }
 
   def mapMergeMonoid[K,V](V: Monoid[V]): Monoid[Map[K, V]] =
-    ???
+    new Monoid[Map[K, V]] {
+      val zero : Map[K, V] = Map[K, V]()
+      def op(m1 : Map[K, V], m2 : Map[K, V]) : Map[K, V] =
+        m1.map {
+          case (k, v) => (k, V.op(v, m2.get(k).getOrElse(V.zero)))
+        }
+    }
 
   def bag[A](as: IndexedSeq[A]): Map[A, Int] =
     ???
