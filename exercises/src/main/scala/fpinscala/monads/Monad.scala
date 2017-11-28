@@ -66,7 +66,12 @@ object Monad {
 
   def parserMonad[P[+_]](p: Parsers[P]): Monad[P] = ???
 
-  val optionMonad: Monad[Option] = ???
+  val optionMonad: Monad[Option] =
+    new Monad[Option] {
+      def unit[A](a : => A) = Some(a)
+      def flatMap[A, B](oa : Option[A])(f : A => Option[B]) : Option[B] =
+        (oa map f).fold(None : Option[B])(identity)
+    }
 
   val streamMonad: Monad[Stream] = ???
 
