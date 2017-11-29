@@ -57,14 +57,24 @@ case class Reader[R, A](run: R => A)
 
 object Monad {
   val genMonad = new Monad[Gen] {
-    def unit[A](a: => A): Gen[A] = Gen.unit(a)
+    def unit[A](a : => A): Gen[A] = Gen.unit(a)
     override def flatMap[A,B](ma: Gen[A])(f: A => Gen[B]): Gen[B] =
       ma flatMap f
   }
 
-  val parMonad: Monad[Par] = ???
+  val parMonad: Monad[Par] =
+    new Monad[Par] {
+      def unit[A](a : => A) : Par[A] = Par.lazyUnit(a)
+      def flatMap[A, B](pa : Par[A])(f : A => Par[B]) : Par[B] =
+        Par.flatMap(pa)(f)
+    }
 
-  def parserMonad[P[+_]](p: Parsers[P]): Monad[P] = ???
+  def parserMonad[P[+_]](p: Parsers[P]): Monad[P] =
+    new Monad[P] {
+      def unit[A](a: => A) : P[A] = p.succeed(a)
+      def flatMap[A, B](pa : P[A])(f : A => P[B]) : P[B] =
+        p.flatMap(pa)(f)
+    }
 
   val optionMonad: Monad[Option] =
     new Monad[Option] {
