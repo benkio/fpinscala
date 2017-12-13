@@ -46,7 +46,13 @@ trait Monad[M[_]] extends Functor[M] {
       map2(ml, f(a))((l, b) => l :+ b)
     )
 
-  def replicateM[A](n: Int, ma: M[A]): M[List[A]] = ???
+  def replicateM[A](n: Int, ma: M[A]): M[List[A]] =
+    map(ma)((a : A) => List.fill(n)(a))
+
+  def cofactor[A,B](e: Either[M[A], M[B]]): M[Either[A, B]] =
+    e.fold[M[Either[A, B]]]((ma : M[A]) => map(ma)(Left(_)),
+                            (mb : M[B]) => map(mb)(Right(_))
+                            )
 
   def compose[A,B,C](f: A => M[B], g: B => M[C]): A => M[C] = ???
 
@@ -89,11 +95,16 @@ object Monad {
         (oa map f).fold(None : Option[B])(identity)
     }
 
-  val streamMonad: Monad[Stream] = ???
+  val streamMonad: Monad[Stream] =
+    new Monad[Stream] {
+      def unit[A](a : => A) : Stream[A] = Stream(a)
+      def flatMap[A, B](s : Stream[A])(f : A => Stream[B]) : Stream[B] =
+        s.flatMap(f)
+    }
 
   val listMonad: Monad[List] =
     new Monad[List] {
-      def unit[A](a: => A) = List(a)
+      def unit[A](a: => A) : List[A] = List(a)
       def flatMap[A, B](l : List[A])(f : A => List[B]) : List[B] =
         (l map f).fold(List[B]())(_ ++ _)
     }
@@ -116,4 +127,3 @@ object Reader {
     override def flatMap[A,B](st: Reader[R,A])(f: A => Reader[R,B]): Reader[R,B] = ???
   }
 }
-
