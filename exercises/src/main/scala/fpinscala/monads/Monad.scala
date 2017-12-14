@@ -113,7 +113,11 @@ object Monad {
         (l map f).fold(List[B]())(_ ++ _)
     }
 
-  def stateMonad[S] = ???
+  def stateMonad[S] = new Monad[({type lambda[x] = State[S,x]})#lambda] {
+    def unit[A](a: => A): State[S,A] = State(s => (a, s))
+    def flatMap[A,B](st: State[S,A])(f: A => State[S,B]): State[S,B] =
+      st flatMap f
+  }
 
   val idMonad: Monad[Id] =
     new Monad[Id] {
@@ -121,8 +125,6 @@ object Monad {
       def flatMap[A, B](idA : Id[A])(f : A => Id[B]) : Id[B] =
         idA.flatMap(f)
     }
-
-  def readerMonad[R] = ???
 }
 
 case class Id[A](value: A) {
@@ -132,7 +134,8 @@ case class Id[A](value: A) {
 
 object Reader {
   def readerMonad[R] = new Monad[({type f[x] = Reader[R,x]})#f] {
-    def unit[A](a: => A): Reader[R,A] = ???
-    override def flatMap[A,B](st: Reader[R,A])(f: A => Reader[R,B]): Reader[R,B] = ???
+    def unit[A](a: => A): Reader[R,A] = Reader(r => a)
+    override def flatMap[A,B](st: Reader[R,A])(f: A => Reader[R,B]): Reader[R,B] =
+      Reader(r => f(st.run(r)).run(r))
   }
 }
