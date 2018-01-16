@@ -22,13 +22,19 @@ trait Applicative[F[_]] extends Functor[F] {
   def map[A,B](fa: F[A])(f: A => B): F[B] =
     apply(unit(f))(fa)
 
-  def sequence[A](fas: List[F[A]]): F[List[A]] = ???
+  def sequence[A](fas: List[F[A]]): F[List[A]] =
+    fas.foldRight(unit(List()) : F[List[A]])((fa, r) =>
+      map2(fa, r)((a, l) => l :+ a)
+    )
 
-  def traverse[A,B](as: List[A])(f: A => F[B]): F[List[B]] = ???
+  def traverse[A,B](as: List[A])(f: A => F[B]): F[List[B]] =
+    sequence(as.map(f))
 
-  def replicateM[A](n: Int, fa: F[A]): F[List[A]] = ???
+  def replicateM[A](n: Int, fa: F[A]): F[List[A]] =
+    map(fa)(a => List.fill(n)(a))
 
-  def factor[A,B](fa: F[A], fb: F[B]): F[(A,B)] = ???
+  def factor[A,B](fa: F[A], fb: F[B]): F[(A,B)] =
+    map2(fa, fb)((a, b) => (a, b))
 
   def product[G[_]](G: Applicative[G]): Applicative[({type f[x] = (F[x], G[x])})#f] = ???
 
