@@ -189,9 +189,21 @@ object Traverse {
       )
   }
 
-  val optionTraverse = ???
+  val optionTraverse = new Traverse[Option] {
+    override def traverse[G[_], A, B](fa: Option[A])(f: A => G[B])(implicit G: Applicative[G]) : G[Option[B]] =
+      sequence(fa.map(a => f(a)))
+    override def sequence[G[_], A](fma : Option[G[A]])(implicit G : Applicative[G]) : G[Option[A]] =
+      fma.foldRight(G.unit(None): G[Option[A]])((ga, goa) =>
+        G.map2(ga, goa)((a, oa) => (Some(a) : Option[A]))
+      )
+  }
 
-  val treeTraverse = ???
+  val treeTraverse = new Traverse[Tree[A]] {
+    override def traverse[G[_], A, B](fa: Tree[A])(f: A => G[B])(implicit G: Applicative[G]) : G[Tree[B]] =
+      ???
+    override def sequence[G[_], A](fma : Tree[G[A]])(implicit G : Applicative[G]) : G[Tree[A]] =
+      ???
+  }
 }
 
 // The `get` and `set` functions on `State` are used above,
