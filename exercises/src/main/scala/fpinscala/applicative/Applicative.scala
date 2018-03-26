@@ -1,4 +1,4 @@
-package fpinscala
+spackage fpinscala
 package applicative
 
 import monads.Functor
@@ -143,7 +143,10 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
   def sequence[G[_]:Applicative,A](fma: F[G[A]]): G[F[A]] =
     traverse(fma)(ma => ma)
 
-  def map[A,B](fa: F[A])(f: A => B): F[B] = ???
+  type Id[A] = A
+
+  def map[A,B](fa: F[A])(f: A => B): F[B] =
+    traverse[Id, A, B](fa)(f)
 
   import Applicative._
 
