@@ -198,11 +198,9 @@ object Traverse {
       )
   }
 
-  val treeTraverse = new Traverse[Tree[A]] {
+  val treeTraverse = new Traverse[Tree] {
     override def traverse[G[_], A, B](fa: Tree[A])(f: A => G[B])(implicit G: Applicative[G]) : G[Tree[B]] =
-      ???
-    override def sequence[G[_], A](fma : Tree[G[A]])(implicit G : Applicative[G]) : G[Tree[A]] =
-      ???
+      G.map2(f(fa.head), listTraverse.traverse(fa.tail)((ta) => traverse(ta)(f)))((b, lb) => Tree(b, lb))
   }
 }
 
