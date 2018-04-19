@@ -372,11 +372,21 @@ object IO3 {
                                f: A => Free[F, B]) extends Free[F, B]
 
   // Exercise 1: Implement the free monad
-  def freeMonad[F[_]]: Monad[({type f[a] = Free[F,a]})#f] = ???
+  def freeMonad[F[_]]: Monad[({type f[a] = Free[F,a]})#f] =
+    new Monad[({type f[a] = Free[F,a]})#f] {
+      def unit[A](a : => A) : Free[F, A] = Return(a)
+      def flatMap[A,B](fa: Free[F, A])(f: A => Free[F, B]) = FlatMap(fa, f)
+    }
 
   // Exercise 2: Implement a specialized `Function0` interpreter.
-  // @annotation.tailrec
-  def runTrampoline[A](a: Free[Function0,A]): A = ???
+  @annotation.tailrec
+  def runTrampoline[A](a: Free[Function0,A]): A = a match {
+    case Return(x)  => x
+    case Suspend(x) => x()
+    case FlatMap(Return(x), y) => runTrampoline(y(x))
+    case FlatMap(Suspend(f), y) => runTrampoline(y(f()))
+    case FlatMap(FlatMap(x,y), z) => runTrampoline{ (x flatMap y) flatMap z }
+  }
 
   // Exercise 3: Implement a `Free` interpreter which works for any `Monad`
   def run[F[_],A](a: Free[F,A])(implicit F: Monad[F]): F[A] = ???

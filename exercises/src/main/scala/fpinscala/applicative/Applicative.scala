@@ -148,7 +148,7 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] { self =>
   val idMonad: Monad[Id] =
     new Monad[Id] {
       def unit[A](a : => A) : Id[A] = a
-      def flatMap[A, B](idA : Id[A])(f : A => Id[B]) : Id[B] =
+      override def flatMap[A, B](idA : Id[A])(f : A => Id[B]) : Id[B] =
         flatMap(idA)(f)
     }
 
